@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=400, initial-scale=0.6">
     <title>Document</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" integrity="sha512-tqaIiFJopq4lTBmFlWF0MNzzTpDsHyug8tJaaY0VkcH5AR2ANMJlcD+3fIL+RQ4JU3K6edt9OoySKfCCyKgkng==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css" integrity="sha512-MTt1T2DF1IKCXWidEXFcUQZg3SQZqdXMmNXNctm23kKAPcJtkPWlGz36ieXIvEpt8G0J1uhKa8XXkYV1JyC9Tw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -60,6 +60,12 @@
   }
 }
 
+@media screen{
+   * {
+      transform: scale(1.0);   
+   }
+}
+
 	</style>
 </body>
 <script>
@@ -80,9 +86,16 @@ function render(){
     var pdfjsLib = window['pdfjs-dist/build/pdf'];
     pdfjsLib.GlobalWorkerOptions.workerSrc = url;
 
+    var DEFAULT_SCALE_VALUE = 'page-width';
+
+    var scale = 'scale(1)';
+document.body.style.webkitTransform =  scale;    // Chrome, Opera, Safari
+ document.body.style.msTransform =   scale;       // IE 9
+ document.body.style.transform = scale;     // General
+
     var pdfDoc = null,
         pageNum = 1,
-        pageRendering = false,
+        pageRendering = true,
         pageNumPending = null,
         scale = 1.5;
 
@@ -91,7 +104,7 @@ function render(){
     pageRendering = true;
     // Using promise to fetch the page
     pdfDoc.getPage(num).then(function(page) {
-        var viewport = page.getViewport({scale: scale});
+        var viewport = page.getViewport({scale: 1});
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
