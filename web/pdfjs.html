@@ -23,10 +23,24 @@
 	</style>
 </body>
 <script>
-    var url = 'https://deqstudio.github.io/vpr/4_russian_1.pdf';
+function getQueryParams(qs) {
+    qs = qs.split('+').join(' ');
+
+    var params = {},
+        tokens,
+        re = /[?&]?([^=]+)=([^&]*)/g;
+
+    while (tokens = re.exec(qs)) {
+        params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+    }
+
+    return params;
+}
+
+var query = getQueryParams(document.location.search);
 
 var pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.2.2/pdf.worker.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = query.file;
 
 var pdfDoc = null,
     pageNum = 1,
