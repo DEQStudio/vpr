@@ -10,8 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js" integrity="sha512-P4czHqcxmgci7QIhI48N1GmF+rWm4PGB/GQ8/GZvJC6rgzssgX0meArUqH2WRfeDfurya5HxKd5uYLPDntEZ/Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
+    <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
 	<div id="canvases"></div>
-	<script type="text/javascript" src="./script.js"></script>
 	<style type="text/css">
 		body {
 			background-color: #535759;
@@ -19,79 +19,118 @@
 		#canvases canvas {
 			margin: 20px auto;
 			display: block;
+            z-index: 10 !important;
 		}
+        .lds-ring {
+            left: 40vw;
+            top: 40vh;
+            z-index: -1 !important;
+  display: block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border: 8px solid #fff;
+  border-radius: 50%;
+  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #fff transparent transparent transparent;
+}
+.lds-ring div:nth-child(1) {
+  animation-delay: -0.45s;
+}
+.lds-ring div:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.lds-ring div:nth-child(3) {
+  animation-delay: -0.15s;
+}
+@keyframes lds-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 	</style>
 </body>
 <script>
-function getQueryParams(qs) {
-    qs = qs.split('+').join(' ');
+function gup( name, url ) {
+    if (!url) url = location.href;
+    name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
+    var regexS = "[\\?&]"+name+"=([^&#]*)";
+    var regex = new RegExp( regexS );
+    var results = regex.exec( url );
+    return results == null ? null : results[1];
+}
 
-    var params = {},
-        tokens,
-        re = /[?&]?([^=]+)=([^&]*)/g;
+var url = gup('file', window.location.href);
 
-    while (tokens = re.exec(qs)) {
-        params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+render();
+
+function render(){
+    var pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = url;
+
+    var pdfDoc = null,
+        pageNum = 1,
+        pageRendering = false,
+        pageNumPending = null,
+        scale = 1.5;
+
+    function renderPage(num, canvas) {
+    var ctx = canvas.getContext('2d');
+    pageRendering = true;
+    // Using promise to fetch the page
+    pdfDoc.getPage(num).then(function(page) {
+        var viewport = page.getViewport({scale: scale});
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // Render PDF page into canvas context
+        var renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+        };
+        var renderTask = page.render(renderContext);
+
+        // Wait for rendering to finish
+        renderTask.promise.then(function() {
+        pageRendering = false;
+        if (pageNumPending !== null) {
+            // New page rendering is pending
+            renderPage(pageNumPending);
+            pageNumPending = null;
+        }
+        });
+    });
     }
 
-    return params;
-}
+    pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+    pdfDoc = pdfDoc_;
 
-var query = getQueryParams(document.location.search);
+    const pages = parseInt(pdfDoc.numPages);
 
-var pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = query.file;
+    var canvasHtml = '';
+    for (var i = 0; i < pages; i++) {
+        canvasHtml += '<canvas id="canvas_' + i + '"></canvas>';
+    }
 
-var pdfDoc = null,
-    pageNum = 1,
-    pageRendering = false,
-    pageNumPending = null,
-    scale = 1.5;
+    document.getElementById('canvases').innerHTML = canvasHtml;
 
-function renderPage(num, canvas) {
-  var ctx = canvas.getContext('2d');
-  pageRendering = true;
-  // Using promise to fetch the page
-  pdfDoc.getPage(num).then(function(page) {
-    var viewport = page.getViewport({scale: scale});
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-
-    // Render PDF page into canvas context
-    var renderContext = {
-      canvasContext: ctx,
-      viewport: viewport
-    };
-    var renderTask = page.render(renderContext);
-
-    // Wait for rendering to finish
-    renderTask.promise.then(function() {
-      pageRendering = false;
-      if (pageNumPending !== null) {
-        // New page rendering is pending
-        renderPage(pageNumPending);
-        pageNumPending = null;
-      }
+    for (var i = 0; i < pages; i++) {
+        var canvas = document.getElementById('canvas_' + i);
+        renderPage(i+1, canvas);
+    }
     });
-  });
 }
-
-pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
-  pdfDoc = pdfDoc_;
-
-  const pages = parseInt(pdfDoc.numPages);
-
-  var canvasHtml = '';
-  for (var i = 0; i < pages; i++) {
-  	canvasHtml += '<canvas id="canvas_' + i + '"></canvas>';
-  }
-
-  document.getElementById('canvases').innerHTML = canvasHtml;
-
-  for (var i = 0; i < pages; i++) {
-  	var canvas = document.getElementById('canvas_' + i);
-  	renderPage(i+1, canvas);
-  }
-});
 </script>
 </html>
